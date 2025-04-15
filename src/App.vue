@@ -7,8 +7,8 @@
   <Header class="header">
     <Title />
     <nav class="nav">
-      <RouterLink to="/">Home</RouterLink> |
       <RouterLink to="/about">About</RouterLink>
+      <RouterLink to="/work">Work</RouterLink>
     </nav>
   </Header>
 
@@ -21,12 +21,16 @@
 </template>
 <style scoped>
 .header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw; /* 뷰포트 기준 전체 너비 */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid #eee;
-  background-color: #f9f9f9;
+  padding: 0.5rem 2rem;
+  box-sizing: border-box; /* padding 포함해서 꽉 채우기 */
+
 }
 
 .nav {
