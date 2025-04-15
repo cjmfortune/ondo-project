@@ -28,9 +28,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 2rem;
+  padding: 0.1rem 2rem;
   box-sizing: border-box; /* padding 포함해서 꽉 채우기 */
-
+  background: white;
 }
 
 .nav {
