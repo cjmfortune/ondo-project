@@ -39,8 +39,4 @@
   color: #333;
   font-weight: 500;
 }
-
-.nav a.router-link-active {
-  color: #42b983;
-}
 </style>
