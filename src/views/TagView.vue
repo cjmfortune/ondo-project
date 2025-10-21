@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import ImageModal from '@/components/ImageModal.vue'
 
 interface TagInfo {
@@ -22,17 +22,18 @@ interface WorkItem {
   basic: boolean
 }
 
+const route = useRoute()
 const router = useRouter()
 const items = ref<WorkItem[]>([])
 const loading = ref(false)
-const hasMore = ref(true)
+const currentTag = ref<string>('')
 const baseImagePath = 'https://backend.ondo-project.com'
 
 // 모달 관련 상태
 const isModalOpen = ref(false)
 const currentImageIndex = ref(0)
 
-const fetchImages = async (): Promise<WorkItem[]> => {
+const fetchImagesByTag = async (tagName: string): Promise<WorkItem[]> => {
   try {
     const res = await fetch('https://backend.ondo-project.com/images')
     if (!res.ok) {
@@ -40,9 +41,13 @@ const fetchImages = async (): Promise<WorkItem[]> => {
     }
     const data = await res.json()
     
-    // show가 true인 이미지만 필터링하고 index 순으로 정렬
+    // 특정 태그를 가진 이미지만 필터링
     return data
-      .filter((item: any) => item.show === true)
+      .filter((item: any) => 
+        item.show === true && 
+        item.tags && 
+        item.tags.some((tag: any) => tag.tagName.toLowerCase() === tagName.toLowerCase())
+      )
       .sort((a: any, b: any) => a.index - b.index)
       .map((item: any) => ({
         id: item.id,
@@ -57,21 +62,21 @@ const fetchImages = async (): Promise<WorkItem[]> => {
         basic: item.basic
       }))
   } catch (error) {
-    console.error('Failed to fetch images:', error)
+    console.error('Failed to fetch images by tag:', error)
     return []
   }
 }
 
-const loadImages = async () => {
+const loadImagesByTag = async (tagName: string) => {
   if (loading.value) return
   loading.value = true
+  currentTag.value = tagName
   
   try {
-    const newItems = await fetchImages()
-    items.value = newItems
-    hasMore.value = false
+    const tagImages = await fetchImagesByTag(tagName)
+    items.value = tagImages
   } catch (error) {
-    console.error('Error loading images:', error)
+    console.error('Error loading images by tag:', error)
   } finally {
     loading.value = false
   }
@@ -82,8 +87,14 @@ const handleImageError = (event: Event) => {
   img.src = '/placeholder.jpg'
 }
 
+const goBack = () => {
+  router.push('/work')
+}
+
 const goToTag = (tagName: string) => {
-  router.push(`/tag/${encodeURIComponent(tagName)}`)
+  if (tagName !== currentTag.value) {
+    router.push(`/tag/${encodeURIComponent(tagName)}`)
+  }
 }
 
 const openImageModal = (index: number) => {
@@ -100,13 +111,33 @@ const handleModalTagClick = (tagName: string) => {
   goToTag(tagName)
 }
 
+// 라우트 파라미터 변경 감지
+watch(() => route.params.tagName, (newTagName) => {
+  if (newTagName && typeof newTagName === 'string') {
+    loadImagesByTag(decodeURIComponent(newTagName))
+  }
+}, { immediate: true })
+
 onMounted(() => {
-  loadImages()
+  const tagName = route.params.tagName
+  if (tagName && typeof tagName === 'string') {
+    loadImagesByTag(decodeURIComponent(tagName))
+  }
 })
 </script>
 
 <template>
-  <div class="work-container">
+  <div class="tag-container">
+    <!-- 헤더 -->
+    <div class="header">
+
+      <h1 class="tag-title">
+        <span class="tag-label">#{{ currentTag }}</span>
+        <span class="count" v-if="!loading">({{ items.length }} images)</span>
+      </h1>
+    </div>
+
+    <!-- 이미지 그리드 -->
     <div class="grid-container">
       <div v-for="(item, index) in items" :key="item.id" class="card">
         <div class="image-wrapper" @click="openImageModal(index)">
@@ -137,13 +168,19 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- 로딩 -->
     <div v-if="loading" class="loading">
       <div class="loading-spinner"></div>
       <span>Loading images...</span>
     </div>
 
+    <!-- 빈 상태 -->
     <div v-if="!loading && items.length === 0" class="empty-state">
-      <p>No images found.</p>
+      <h2>No images found for tag "{{ currentTag }}"</h2>
+      <p>Try exploring other tags or go back to see all works.</p>
+      <button @click="goBack" class="back-button-large">
+        View All Works
+      </button>
     </div>
 
     <!-- 이미지 모달 -->
@@ -159,10 +196,55 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.work-container {
+.tag-container {
   min-height: 100vh;
   padding: 2rem;
   background: #f8f9fa;
+}
+
+.header {
+  max-width: 1400px;
+  margin: 0 auto 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.back-button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  align-self: flex-start;
+}
+
+.back-button:hover {
+  background: #5a67d8;
+}
+
+.tag-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #2d3748;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.tag-label {
+  color: #000;
+}
+
+.count {
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: #718096;
 }
 
 .grid-container {
@@ -199,7 +281,6 @@ onMounted(() => {
   transform: scale(1.05);
 }
 
-/* 호버 시 이미지 위에 표시되는 오버레이 */
 .overlay {
   position: absolute;
   top: 0;
@@ -264,7 +345,6 @@ onMounted(() => {
   z-index: 2;
 }
 
-/* 호버 시 하단에 나타나는 제목 오버레이 */
 .title-overlay {
   position: absolute;
   bottom: 0;
@@ -333,8 +413,35 @@ onMounted(() => {
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  color: #a0aec0;
+  color: #718096;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.empty-state h2 {
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+.empty-state p {
+  margin-bottom: 2rem;
   font-size: 1.1rem;
+}
+
+.back-button-large {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.back-button-large:hover {
+  background: #5a67d8;
 }
 
 /* 반응형 디자인 */
@@ -345,8 +452,19 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .work-container {
+  .tag-container {
     padding: 1rem;
+  }
+  
+  .header {
+    margin-bottom: 2rem;
+  }
+  
+  .tag-title {
+    font-size: 2rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
   
   .grid-container {
@@ -368,8 +486,12 @@ onMounted(() => {
 }
 
 @media (max-width: 480px) {
-  .work-container {
+  .tag-container {
     padding: 0.5rem;
+  }
+  
+  .tag-title {
+    font-size: 1.5rem;
   }
   
   .grid-container {
@@ -403,4 +525,3 @@ onMounted(() => {
   }
 }
 </style>
-

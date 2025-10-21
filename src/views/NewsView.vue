@@ -17,7 +17,7 @@
           06046
         </address>
         <p>
-          <a href="https://www.google.com/maps/place/%EC%84%9C%EC%9A%B8%ED%8A%B9%EB%B3%84%EC%8B%9C+%EA%B0%95%EB%82%A8%EA%B5%AC+%ED%95%99%EB%8F%99%EB%A1%9C+177/data=!3m1!4b1!4m6!3m5!1s0x357ca3f1e9665c7f:0xe6e8fc926cf962ad!8m2!3d37.5142281!4d127.0302622!16s%2Fg%2F11bz2lwpbs?entry=ttu&g_ep=EgoyMDI1MDUxNS4xIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noopener noreferrer">Link to Map</a>
+          <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Link to Map</a>
         </p>
         <p>
           <a href="tel:+8225461775">+82 (0)2 546 1775</a>

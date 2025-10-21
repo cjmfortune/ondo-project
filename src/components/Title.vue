@@ -4,7 +4,7 @@
 
 <template>
   <RouterLink to="/">
-    <h1 class="title">TEST PROJECT</h1>
+    <h1 class="title">ONDO PROJECT</h1>
   </RouterLink>
 </template>
 
@@ -14,5 +14,10 @@
   font-weight: bold;
   text-align: center;
   color: #333;
+}
+@media (max-width: 600px) {
+  .title {
+    font-size: 2rem;
+  }
 }
 </style>
