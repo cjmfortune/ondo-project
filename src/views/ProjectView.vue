@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import ImageModal from '@/components/ImageModal.vue'
 
 interface TagInfo {
@@ -22,17 +22,18 @@ interface WorkItem {
   basic: boolean
 }
 
+const route = useRoute()
 const router = useRouter()
 const items = ref<WorkItem[]>([])
 const loading = ref(false)
-const hasMore = ref(true)
 const baseImagePath = 'https://backend.ondo-project.com'
 
-// 모달 관련 상태
 const isModalOpen = ref(false)
 const currentImageIndex = ref(0)
 
-const fetchImages = async (): Promise<WorkItem[]> => {
+const projectName = computed(() => route.params.projectName as string)
+
+const fetchProjectImages = async (): Promise<WorkItem[]> => {
   try {
     const res = await fetch('https://backend.ondo-project.com/images')
     if (!res.ok) {
@@ -40,9 +41,11 @@ const fetchImages = async (): Promise<WorkItem[]> => {
     }
     const data = await res.json()
     
-    // show가 true인 이미지만 필터링하고 index 순으로 정렬
     return data
-      .filter((item: any) => item.show === true)
+      .filter((item: any) => 
+        item.show === true && 
+        (item.projectName || 'Untitled Project') === decodeURIComponent(projectName.value)
+      )
       .sort((a: any, b: any) => a.index - b.index)
       .map((item: any) => ({
         id: item.id,
@@ -57,19 +60,16 @@ const fetchImages = async (): Promise<WorkItem[]> => {
         basic: item.basic
       }))
   } catch (error) {
-    console.error('Failed to fetch images:', error)
+    console.error('Failed to fetch project images:', error)
     return []
   }
 }
 
 const loadImages = async () => {
-  if (loading.value) return
   loading.value = true
-  
   try {
-    const newItems = await fetchImages()
+    const newItems = await fetchProjectImages()
     items.value = newItems
-    hasMore.value = false
   } catch (error) {
     console.error('Error loading images:', error)
   } finally {
@@ -80,10 +80,6 @@ const loadImages = async () => {
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
   img.src = '/placeholder.jpg'
-}
-
-const goToProject = (projectName: string) => {
-  router.push(`/project/${encodeURIComponent(projectName)}`)
 }
 
 const goToTag = (tagName: string) => {
@@ -106,7 +102,7 @@ const handleModalTagClick = (tagName: string) => {
 
 const handleModalProjectClick = (projectName: string) => {
   closeImageModal()
-  goToProject(projectName)
+  router.push(`/project/${encodeURIComponent(projectName)}`)
 }
 
 onMounted(() => {
@@ -115,7 +111,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="work-container">
+  <div class="project-container">
+    <div class="project-header">
+      <h1 class="project-title">{{ decodeURIComponent(projectName) }}</h1>
+      <p class="project-count">{{ items.length }} images</p>
+    </div>
+
     <div class="grid-container">
       <div v-for="(item, index) in items" :key="item.id" class="card">
         <div class="image-wrapper" @click="openImageModal(index)">
@@ -140,9 +141,7 @@ onMounted(() => {
           <div v-if="item.basic" class="basic-badge">Featured</div>
         </div>
         <div class="title-overlay">
-          <h3 class="image-title" @click.stop="goToProject(item.projectName || 'Untitled Project')">
-            {{ item.projectName || 'Untitled Project' }}
-          </h3>
+          <h3 class="image-title">{{ item.projectName || 'Untitled Project' }}</h3>
           <p v-if="item.description" class="image-description">{{ item.description }}</p>
         </div>
       </div>
@@ -154,10 +153,9 @@ onMounted(() => {
     </div>
 
     <div v-if="!loading && items.length === 0" class="empty-state">
-      <p>No images found.</p>
+      <p>No images found for this project.</p>
     </div>
 
-    <!-- 이미지 모달 -->
     <ImageModal
       :is-open="isModalOpen"
       :images="items"
@@ -171,10 +169,27 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.work-container {
+.project-container {
   min-height: 100vh;
   padding: 2rem;
   background: #f8f9fa;
+}
+
+.project-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.project-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.project-count {
+  color: #718096;
+  font-size: 1.1rem;
 }
 
 .grid-container {
@@ -211,7 +226,6 @@ onMounted(() => {
   transform: scale(1.05);
 }
 
-/* 호버 시 이미지 위에 표시되는 오버레이 */
 .overlay {
   position: absolute;
   top: 0;
@@ -276,7 +290,6 @@ onMounted(() => {
   z-index: 2;
 }
 
-/* 호버 시 하단에 나타나는 제목 오버레이 */
 .title-overlay {
   position: absolute;
   bottom: 0;
@@ -303,12 +316,6 @@ onMounted(() => {
   margin: 0 0 0.5rem 0;
   line-height: 1.3;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  cursor: pointer;
-  transition: color 0.3s ease;
-}
-
-.image-title:hover {
-  color: #667eea;
 }
 
 .image-description {
@@ -316,10 +323,6 @@ onMounted(() => {
   font-size: 0.9rem;
   line-height: 1.5;
   margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
@@ -355,7 +358,6 @@ onMounted(() => {
   font-size: 1.1rem;
 }
 
-/* 반응형 디자인 */
 @media (max-width: 1200px) {
   .grid-container {
     columns: 3;
@@ -363,62 +365,31 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .work-container {
+  .project-container {
     padding: 1rem;
+  }
+  
+  .project-title {
+    font-size: 2rem;
   }
   
   .grid-container {
     columns: 2;
     column-gap: 1.5rem;
   }
-  
-  .card {
-    margin-bottom: 1.5rem;
-  }
-  
-  .title-overlay {
-    padding: 1.5rem 1rem 1rem;
-  }
-  
-  .image-title {
-    font-size: 1.1rem;
-  }
 }
 
 @media (max-width: 480px) {
-  .work-container {
+  .project-container {
     padding: 0.5rem;
+  }
+  
+  .project-title {
+    font-size: 1.5rem;
   }
   
   .grid-container {
     columns: 1;
-    column-gap: 0;
-  }
-  
-  .card {
-    margin-bottom: 1rem;
-  }
-  
-  .overlay-tags {
-    padding: 0.5rem;
-  }
-  
-  .overlay-tag {
-    font-size: 0.7rem;
-    padding: 4px 8px;
-  }
-  
-  .title-overlay {
-    padding: 1rem 0.75rem 0.75rem;
-  }
-  
-  .image-title {
-    font-size: 1rem;
-  }
-  
-  .image-description {
-    font-size: 0.8rem;
   }
 }
 </style>
-

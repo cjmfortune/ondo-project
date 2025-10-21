@@ -5,6 +5,7 @@ import WorkView from "../views/WorkView.vue";
 import TagView from "../views/TagView.vue";
 import PeopleView from "../views/PeopleView.vue";
 import NewsView from "../views/NewsView.vue";
+import ProjectView from "../views/ProjectView.vue";
 const routes = [
     {
         path: '/',
@@ -25,6 +26,11 @@ const routes = [
         path: '/tag/:tagName',
         name: 'Tag',
         component: TagView
+    },
+    {
+        path: '/project/:projectName',
+        name: 'Project',
+        component: ProjectView
     },
     {
         path: '/people',

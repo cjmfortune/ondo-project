@@ -30,6 +30,7 @@ interface Emits {
   (e: 'close'): void
   (e: 'update:currentIndex', index: number): void
   (e: 'tagClick', tagName: string): void
+  (e: 'projectClick', projectName: string): void
 }
 
 const props = defineProps<Props>()
@@ -63,6 +64,10 @@ const closeModal = () => {
 
 const handleTagClick = (tagName: string) => {
   emit('tagClick', tagName)
+}
+
+const handleProjectClick = (projectName: string) => {
+  emit('projectClick', projectName)
 }
 
 const handleKeydown = (event: KeyboardEvent) => {
@@ -166,7 +171,9 @@ watch(() => props.isOpen, (isOpen) => {
         <!-- 이미지 정보 -->
         <div v-if="currentImage" class="image-info">
           <div class="image-header">
-            <h2 class="image-title">{{ currentImage.projectName || 'Untitled Project' }}</h2>
+            <h2 class="image-title" @click="handleProjectClick(currentImage.projectName || 'Untitled Project')">
+              {{ currentImage.projectName || 'Untitled Project' }}
+            </h2>
             <div class="image-counter">
               {{ currentIndex + 1 }} / {{ images.length }}
             </div>
@@ -327,6 +334,12 @@ watch(() => props.isOpen, (isOpen) => {
   color: #2d3748;
   margin: 0;
   flex: 1;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.image-title:hover {
+  color: #667eea;
 }
 
 .image-counter {
